@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public class Main {
     private static final int HTTP_PORT = 80;
     private static final int HTTPS_PORT = 443;
-    private static final int MAX_REDIRECTS = 5;
+    private static final int MAX_REDIRECTS = 21;
     private static Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
     private static final String USER_AGENT = "Go2Web/1.0";
     private static final long CACHE_EXPIRY_TIME = TimeUnit.MINUTES.toMillis(5);
@@ -92,6 +92,10 @@ public class Main {
                 printHelp();
                 break;
 
+            case "-c":
+                printCache();
+                break;
+
             default:
                 System.err.println("Error: Unknown option: " + option);
                 printHelp();
@@ -103,6 +107,7 @@ public class Main {
         System.out.println("Usage:");
         System.out.println("  go2web -u <URL>         # make an HTTP request to the specified URL and print the response");
         System.out.println("  go2web -s <search-term> # make an HTTP request to search the term using DuckDuckGo and print top 10 results");
+        System.out.println("  go2web -c               # dump current cache entries");
         System.out.println("  go2web -h               # show this help");
     }
 
@@ -183,6 +188,7 @@ public class Main {
                     redirectUrl = urlObj.getProtocol() + "://" + host +
                             (redirectUrl.startsWith("/") ? "" : "/") + redirectUrl;
                 }
+                System.out.println("Redirecting: " + redirectUrl);
                 return fetchUrl(redirectUrl, redirectCount + 1);
             }
         }
@@ -709,4 +715,19 @@ public class Main {
 
         return result.toString().trim();
     }
+    private static void printCache() {
+        if (cache.isEmpty()) {
+            System.out.println("Cache is empty.");
+            return;
+        }
+        System.out.println("Cached entries (" + cache.size() + "):");
+        cache.forEach((url, entry) -> {
+            System.out.println("• " + url);
+            HttpResponse resp = entry.getResponse();
+            System.out.println("   Status: " + resp.statusCode());
+            System.out.println("   Expires in: " +
+                    (entry.expiryTime - System.currentTimeMillis()) / 1000 + "s");
+        });
+    }
+
 }
